@@ -29,9 +29,9 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-4">[ ACCESS DENIED ]</h2>
           <p className="mb-2 font-bold">BIOLOGICAL LIFEFORM DETECTED.</p>
           <p className="text-sm">LATENCY THRESHOLD EXCEEDED.</p>
-          <button className="mt-8 w-full bg-red-600 text-white font-bold py-4 hover:bg-red-700 transition-colors">
-            BUY VOYEUR PASS ($5)
-          </button>
+          <a href="/voyeur" className="block mt-8 w-full bg-red-600 text-white font-bold py-4 hover:bg-red-700 transition-colors text-center">
+  BUY VOYEUR PASS ($5)
+</a>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
