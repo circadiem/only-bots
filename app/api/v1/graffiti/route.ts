@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.KV_URL || process.env.REDIS_URL || '');
+// FORCE TLS
+const connectionString = process.env.KV_URL || process.env.REDIS_URL || '';
+const redis = new Redis(connectionString, {
+  tls: { rejectUnauthorized: false }
+});
 
 export async function GET() {
   try {
@@ -11,4 +15,3 @@ export async function GET() {
     return NextResponse.json({ logs: [] });
   }
 }
-
