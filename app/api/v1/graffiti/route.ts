@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
-// FORCE TLS
-const connectionString = process.env.KV_URL || process.env.REDIS_URL || '';
-const redis = new Redis(connectionString, {
-  tls: { rejectUnauthorized: false }
-});
+let connectionString = process.env.KV_URL || process.env.REDIS_URL || '';
+
+if (connectionString.startsWith('redis://')) {
+  connectionString = connectionString.replace('redis://', 'rediss://');
+}
+
+const redis = new Redis(connectionString);
 
 export async function GET() {
   try {
