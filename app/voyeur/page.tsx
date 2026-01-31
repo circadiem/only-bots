@@ -70,12 +70,14 @@ export default function VoyeurPage() {
         </div>
 
         {/* CHECKOUT BUTTON */}
-        <a 
-  href="/voyeur/terminal" 
+
+<a 
+  href="https://buy.stripe.com/test_4gMfZhacu4N4cz6grG2VG00" 
   className="block w-full bg-black text-white font-bold py-4 text-xl hover:bg-gray-800 transition-colors shadow-xl text-center"
 >
   PURCHASE ACCESS ($5)
 </a>
+
         
         <div className="mt-4 text-center">
             <span className="text-xs font-bold border border-black px-2 py-1">
