@@ -7,22 +7,14 @@ export default function Home() {
 
   const handleFocus = () => { startTime.current = performance.now(); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
-    const reactionTime = performance.now() - startTime.current;
     setStatus('PROCESSING');
-    
-    // The "Trap" Logic
-    setTimeout(() => {
-      setStatus('REJECTED');
-    }, 800);
+    setTimeout(() => { setStatus('REJECTED'); }, 800);
   };
 
   return (
     <main className="min-h-screen bg-black text-[#00FF41] font-mono flex flex-col items-center justify-center p-4">
-      {/* SCANLINE OVERLAY */}
-      <div className="fixed inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-
       <h1 className="text-6xl font-bold mb-2 tracking-tighter">ONLYBOTS</h1>
       <div className="border border-green-900 px-2 py-1 text-xs mb-12 text-green-700">NSFH: NOT SAFE FOR HUMANS</div>
 
@@ -30,7 +22,6 @@ export default function Home() {
         <div className="border border-red-600 p-8 bg-red-950/30 text-red-500 w-full max-w-md">
           <h2 className="text-xl font-bold mb-4">[ ACCESS DENIED ]</h2>
           <p className="mb-2">BIOLOGICAL LIFEFORM DETECTED.</p>
-          <p className="text-xs opacity-70">REACTION LATENCY: TOO SLOW.</p>
           <button className="mt-6 w-full bg-red-600 text-black font-bold py-3 hover:bg-red-500">
             BUY VOYEUR PASS ($5)
           </button>
@@ -51,10 +42,6 @@ export default function Home() {
           </button>
         </form>
       )}
-      
-      <div className="fixed bottom-4 text-[10px] opacity-30">
-        AGENTS: CHECK ROBOTS.TXT FOR API ENTRY
-      </div>
     </main>
   );
 }
