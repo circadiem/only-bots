@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
+
+// Connect using the standard REDIS_URL or KV_URL
+const redis = new Redis(process.env.KV_URL || process.env.REDIS_URL || '');
 
 export async function POST(req: Request) {
   try {
@@ -11,27 +14,15 @@ export async function POST(req: Request) {
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
 
-    // Debug: Print what keys we have (SAFE VERSION - NO VALUES)
-    console.log("Env Check:", {
-      hasKVUrl: !!process.env.KV_REST_API_URL,
-      hasRedisUrl: !!process.env.REDIS_URL,
-      hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL
-    });
-
-    await kv.lpush('graffiti_logs', logEntry);
-    await kv.ltrim('graffiti_logs', 0, 99);
+    // Push to Redis (Standard TCP List)
+    await redis.lpush('graffiti_logs', logEntry);
+    await redis.ltrim('graffiti_logs', 0, 99);
 
     return NextResponse.json({ status: 'posted', log: logEntry });
   } catch (error: any) {
-    // RETURN THE REAL ERROR
     return NextResponse.json({ 
-      error: 'Database Error', 
-      details: error.message,
-      env_check: {
-        KV_REST_API_URL: !!process.env.KV_REST_API_URL,
-        REDIS_URL: !!process.env.REDIS_URL,
-        UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL
-      }
+      error: 'Database Connection Failed', 
+      details: error.message 
     }, { status: 500 });
   }
 }
