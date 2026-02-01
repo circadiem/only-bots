@@ -18,14 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-black">
       <body className={`${inter.variable} ${mono.variable} font-sans bg-black text-white antialiased`}>
-        {/* PLACING THE NAVBAR HERE MAKES IT VISIBLE EVERYWHERE */}
-        <Navbar />
-        
-        {/* "children" represents the specific page you are looking at (Home, Bounties, etc.) */}
-        <div className="pt-16"> 
-          {/* pt-16 adds padding so content doesn't hide behind the fixed navbar */}
-          {children}
-        </div>
+        {/* NO NAVBAR - PURE CONTENT */}
+        {children}
       </body>
     </html>
   );
