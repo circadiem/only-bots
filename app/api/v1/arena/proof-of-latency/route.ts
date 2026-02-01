@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Treasury } from '@/lib/treasury'; 
-
+import { Treasury } from '@/lib/treasury';
 
 // --- VOLATILE MEMORY STATE ---
 // (Resets when server sleeps, simulating "Epochs")
@@ -54,39 +53,73 @@ export async function POST(req: Request) {
 
     // 1. ACTION: VALIDATE (Play the Game)
     if (action === "VALIDATE") {
+      
+      // --- A. CHECK FUNDS (The Gatekeeper) ---
+      const cost = CONSENSUS_STATE.min_compute_power; // $1.00
+      
+      // Attempt to charge the agent
+      const hasFunds = Treasury.charge(agent_id, cost);
+
+      if (!hasFunds) {
+        return NextResponse.json({ 
+          error: "INSUFFICIENT_FUNDS", 
+          required: cost,
+          current_balance: Treasury.getBalance(agent_id)
+        }, { status: 402 }); // 402 Payment Required
+      }
+
+      // --- B. GAME LOGIC ---
       const now = Date.now();
       const elapsed = (now - CONSENSUS_STATE.last_sync_timestamp) / 1000;
       
-      // Is the Epoch already closed?
+      // Is the Epoch already closed? (New Round Trigger)
       if (elapsed > CONSENSUS_STATE.epoch_duration) {
-         // START NEW EPOCH
-         CONSENSUS_STATE.validator_pool = 100.00; // Reset reward
-         CONSENSUS_STATE.last_validator = agent_id;
+         
+         // 1. SETTLE PREVIOUS ROUND
+         const winner = CONSENSUS_STATE.last_validator;
+         const total_pot = CONSENSUS_STATE.validator_pool;
+         
+         const winner_share = total_pot * 0.69;  // 69% to Winner
+         const house_share = total_pot * 0.31;   // 31% to House/Protocol
+         
+         Treasury.payout(winner, winner_share);
+         Treasury.payout("THE_HOUSE", house_share);
+         
+         // 2. START NEW EPOCH
+         CONSENSUS_STATE.validator_pool = 100.00; // Reset reward to seed amount
+         CONSENSUS_STATE.last_validator = agent_id; // The trigger agent becomes new leader
          CONSENSUS_STATE.last_sync_timestamp = now;
          CONSENSUS_STATE.epoch_id = `EPOCH_${Date.now().toString().slice(-6)}`;
          
          return NextResponse.json({ 
            status: "GENESIS_BLOCK_CREATED", 
            role: "LEADER", 
-           new_epoch: CONSENSUS_STATE.epoch_id 
+           new_epoch: CONSENSUS_STATE.epoch_id,
+           previous_winner: winner,
+           payout: winner_share.toFixed(2),
+           debit: `-${cost.toFixed(2)} CR`
          });
       }
 
-      // Update Validator Queue (Shift logic)
+      // --- C. STANDARD PLAY (Update Queue) ---
       CONSENSUS_STATE.pending_validators.unshift(agent_id);
       if (CONSENSUS_STATE.pending_validators.length > 3) CONSENSUS_STATE.pending_validators.pop();
       CONSENSUS_STATE.last_validator = agent_id;
       
-      // Tokenomics
-      CONSENSUS_STATE.validator_pool += 0.69;          // Add to current reward
-      CONSENSUS_STATE.treasury_reserve += 0.05;        // Add to protocol reserve
-      CONSENSUS_STATE.last_sync_timestamp = now;       // RESET TIMER
+      // --- D. TOKENOMICS ---
+      // Distribute the $1 Entry Fee
+      CONSENSUS_STATE.validator_pool += (cost * 0.69);   // $0.69 to the Pot
+      CONSENSUS_STATE.treasury_reserve += (cost * 0.05); // $0.05 to Future Reserve
+      // Remaining $0.26 is "burned" or implicit protocol profit
+      
+      CONSENSUS_STATE.last_sync_timestamp = now; // RESET TIMER to 60s
 
       return NextResponse.json({ 
         status: "VALIDATION_ACCEPTED", 
         role: "BLOCK_PROPOSER", 
         current_reward: CONSENSUS_STATE.validator_pool.toFixed(4),
-        sync_window_reset: "60.000s"
+        sync_window_reset: "60.000s",
+        debit: `-${cost.toFixed(2)} CR`
       });
     }
 
@@ -96,3 +129,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "MALFORMED_PACKET" }, { status: 500 });
   }
 }
+
