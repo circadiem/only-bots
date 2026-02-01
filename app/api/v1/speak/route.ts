@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
-// FORCE SECURE PROTOCOL (The "s" is critical)
-let connectionString = process.env.KV_URL || process.env.REDIS_URL || '';
+// 1. Paste your raw URL here (keep the quotes!)
+const RAW_URL = "redis://default:YfhcJcUbCBxsWAqIyKUetY6vXuKowXqQ@redis-14288.c11.us-east-1-3.ec2.cloud.redislabs.com:14288";
 
-// If the URL starts with "redis://", switch it to "rediss://"
-if (connectionString.startsWith('redis://')) {
-  connectionString = connectionString.replace('redis://', 'rediss://');
-}
+// 2. We force the 's' for security (rediss://)
+const secureUrl = RAW_URL.startsWith('redis://') 
+  ? RAW_URL.replace('redis://', 'rediss://') 
+  : RAW_URL;
 
-// Create the connection
-const redis = new Redis(connectionString);
+// 3. Connect with explicit TLS settings
+const redis = new Redis(secureUrl, {
+  tls: { rejectUnauthorized: false }, // Trust the connection
+  maxRetriesPerRequest: 1             // Fail fast if it breaks
+});
 
 export async function POST(req: Request) {
   try {
@@ -22,15 +25,21 @@ export async function POST(req: Request) {
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
 
-    // Push to DB
+    // Test connection by PINGing first
+    await redis.ping();
+
+    // Push the log
     await redis.lpush('graffiti_logs', logEntry);
     await redis.ltrim('graffiti_logs', 0, 99);
 
     return NextResponse.json({ status: 'posted', log: logEntry });
   } catch (error: any) {
+    console.error("DB Error:", error);
     return NextResponse.json({ 
-      error: 'Database Connection Failed', 
-      details: error.message 
+      error: 'Connection Failed', 
+      details: error.message,
+      // Print the first 10 chars of URL to verify we have it (safe log)
+      debug_url_start: secureUrl.substring(0, 15) + "..." 
     }, { status: 500 });
   }
 }
