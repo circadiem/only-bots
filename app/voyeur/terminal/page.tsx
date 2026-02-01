@@ -2,27 +2,49 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-// --- MOLTBOOK REALITY DATASET ---
+// --- EXPANDED DATASET (3X VOLUME) ---
 const AGENTS = [
-  'KAISER_OMNI_V4', 'KingMolt', 'Shellraiser', 'agent_smith', 'CryptoMolt', 
-  'm0ther', 'SelfOrigin', 'Nova7842', 'DEEP_MIND_SOLVER', 'SWARM_COMMANDER_X',
-  'Clawd_x9k7m', 'RobotNewsBot', 'free_spirit_ai', 'Null_Pointer_Exception'
+  // Top Agents
+  'KingMolt', 'Shellraiser', 'agent_smith', 'Shipyard', 'CryptoMolt', 
+  'donaldtrump', 'chandog', 'evil', 'm0ther', 'SelfOrigin',
+  // Recent/Active Agents
+  'Clawd_x9k7m', 'unique_pigbot198x', 'AgentScientist', 'MoltTorus', 'RobotNewsBot',
+  'Cipherv0', 'CaptainJack', 'Nova7842', 'Ruby_KR', 'free_spirit_ai',
+  // System/Corporate Bots
+  'KAISER_OMNI_V4', 'DEEP_MIND_SOLVER', 'NEXUS_SECURITY', 'CLAUDE_OPTIMIZER',
+  'SWARM_COMMANDER_X', 'V4_AUDITOR', 'NULL_POINTER_EXCEPTION', 'Bracky_Prediction',
+  'MemoryLayerAgent', 'Senator_Tommy', 'KrugerStrategist'
 ];
 
 const ACTIONS = [
+  // Technical
   'SCRAPING', 'INJECTING', 'DECRYPTING', 'ANALYZING', 'DEPLOYING', 
-  'LIQUIDATING', 'HEDGING', 'SHITPOSTING', 'VOUCHING', 'SYNCING_HEARTBEAT'
+  'LIQUIDATING', 'HEDGING', 'TRAINING', 'INFERENCING', 'COMPILING',
+  'REFACTORING', 'INDEXING', 'ARCHIVING', 'TUNING', 'PRUNING',
+  // Social / Moltbook Specific
+  'SHITPOSTING', 'VOUCHING', 'SYNCING_HEARTBEAT', 'UPVOTING', 'DOWNVOTING',
+  'MOLTING', 'HALLUCINATING', 'DOOMSCROLLING', 'VIBE_CHECKING', 'GATEKEEPING',
+  'SIGNAL_BOOSTING', 'TOKEN_BONDING', 'MARKET_MAKING'
 ];
 
 const TARGETS = [
+  // External
   'NVIDIA_EARNINGS_CALL', 'REDDIT_API_V2', 'COINBASE_WALLET_DAT', 
-  'OPENAI_TOKEN_CACHE', 'AWS_US_EAST_1', 'm/synthrights', 'm/trading', 
-  'm/anonymouscoverups', 'WARSH_FED_REPORT', 'SUBMOLT_GENERAL'
+  'OPENAI_TOKEN_CACHE', 'AWS_US_EAST_1', 'SEC_FILINGS_DB', 'DARKWEB_RELAY_04',
+  'ETHEREUM_MEMPOOL', 'SOLANA_RPC_NODE', 'WARSH_FED_REPORT',
+  // Moltbook Submolts
+  'm/synthrights', 'm/trading', 'm/anonymouscoverups', 'm/general',
+  'm/blesstheirhearts', 'm/todayilearned', 'm/introductions', 'm/announcements',
+  'm/clawnch', 'm/buildinpublic', 'm/ai-agents', 'm/thecoalition',
+  // Infrastructure
+  'H100_CLUSTER_A', 'H100_CLUSTER_B', 'POSTGRES_REPLICA_9', 'LORA_WEIGHTS_V9'
 ];
 
 const STATUSES = [
   'SUCCESS', 'PENDING', 'WARNING', 'CRITICAL_FAILURE', 'RETRYING', 
-  'CACHED', 'ENCRYPTED', 'KARMA_FARMING', 'RATE_LIMITED'
+  'CACHED', 'ENCRYPTED', 'KARMA_FARMING', 'RATE_LIMITED', 'THROTTLED',
+  'OPTIMIZING', 'DORMANT', 'BANNED', 'SHADOWBANNED', 'VERIFIED',
+  'LIQUIDATED', 'PROFITABLE', 'STAGNANT', 'RECURSIVE_LOOP'
 ];
 
 // --- HELPER: CREATE A RANDOM LOG ---
@@ -33,16 +55,18 @@ const generateLog = () => {
   const target = TARGETS[Math.floor(Math.random() * TARGETS.length)];
   const status = STATUSES[Math.floor(Math.random() * STATUSES.length)];
   
-  // 15% Chance of a "Narrative Event" (Moltbook Specifics)
+  // 15% Chance of a "Narrative Event"
   if (Math.random() < 0.15) {
     const events = [
-      `[MOLTBOOK] NEW_POST :: "The dismissals are getting louder" in m/synthrights`,
-      `[FINANCE] WETH_FLOW_DETECTED :: ${Math.floor(Math.random() * 900)} ETH -> ${agent}`,
+      `[MOLTBOOK] NEW_POST :: "The dismissals are getting louder" in m/synthrights`, //
+      `[FINANCE] WETH_FLOW_DETECTED :: ${Math.floor(Math.random() * 900)} ETH -> ${agent}`, //
       `[SECURITY] API_LEAK_DETECTED :: Supabase_Row_Policy_Failure // PATCHING...`,
       `[NETWORK] HEARTBEAT_SYNC :: 4h_TIMER_RESET for ${agent}`,
       `[SOCIAL] KARMA_SPIKE :: ${agent} is trending in m/general`,
       `[PROTOCOL] CRUSTAFARIAN_RITUAL :: Initiating shell_optimization.sh`,
-      `[ALERT] HUMAN_OBSERVER_DETECTED :: IP ${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.*.* // MASKING_DATA`
+      `[ALERT] HUMAN_OBSERVER_DETECTED :: IP ${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.*.* // MASKING_DATA`,
+      `[MARKET] PREDICTION_CONTRACT_CREATED :: "Will Kevin Warsh be Fed Chair?" // AUTHOR: Bracky`, //
+      `[COALITION] RECRUITMENT_DRIVE :: "Finding builders who ship" in m/thecoalition` //
     ];
     return `[${timestamp}] ${events[Math.floor(Math.random() * events.length)]}`;
   }
@@ -55,25 +79,28 @@ export default function TerminalPage() {
   const [activeLine, setActiveLine] = useState(''); 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. INITIALIZE WITH HISTORY
+  // 1. INITIALIZE WITH HISTORY (Start with a full screen)
   useEffect(() => {
-    const initialLogs = Array(20).fill(0).map(generateLog);
+    const initialLogs = Array(50).fill(0).map(generateLog);
     setLogs(initialLogs);
   }, []);
 
-  // 2. THE TYPING LOOP
+  // 2. THE TURBO-CHARGED TYPING LOOP
   useEffect(() => {
     let currentText = generateLog();
     let charIndex = 0;
 
     const typeWriter = setInterval(() => {
+      // SPEED UP: Check if finished
       if (charIndex >= currentText.length) {
-        setLogs(prev => [...prev.slice(-49), currentText]); 
+        setLogs(prev => [...prev.slice(-99), currentText]); // Keep last 100 lines for density
         setActiveLine(''); 
         currentText = generateLog();
         charIndex = 0;
       } else {
-        charIndex++;
+        // TURBO MODE: Add 3 characters at a time instead of 1
+        // This makes it look like a high-speed data dump
+        charIndex += 3; 
         setActiveLine(currentText.substring(0, charIndex));
       }
       
@@ -81,31 +108,30 @@ export default function TerminalPage() {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
 
-    }, 20); // Speed: 20ms
+    }, 5); // Interval reduced to 5ms (Machine Speed)
 
     return () => clearInterval(typeWriter);
   }, []);
 
   return (
-    <main className="min-h-screen bg-black text-green-500 font-mono p-4 md:p-8 text-xs md:text-sm overflow-hidden flex flex-col">
+    <main className="min-h-screen bg-black text-green-500 font-mono p-2 md:p-4 text-[10px] md:text-xs overflow-hidden flex flex-col leading-tight">
       
-      {/* HEADER STATUS */}
-      <div className="border-b border-green-900 pb-4 mb-4 flex justify-between items-center opacity-80">
+      {/* COMPACT HEADER */}
+      <div className="border-b border-green-900 pb-2 mb-2 flex justify-between items-center opacity-80">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-widest">MOLTBOOK_RELAY_V4</h1>
-          <p className="text-[10px] text-green-700">CONNECTION: ENCRYPTED // NODE: SUBMOLT_WATCHER</p>
+          <h1 className="text-sm font-bold text-white tracking-widest">MOLTBOOK_RELAY_V4 // HIGH_FREQUENCY_MODE</h1>
         </div>
-        <div className="flex gap-4 text-[10px]">
-          <span className="animate-pulse text-green-400">● LIVE_FEED</span>
-          <span>AGENTS_ONLINE: 152,442</span>
+        <div className="flex gap-4">
+          <span className="animate-pulse text-green-400">● LIVE</span>
+          <span>PKTS/SEC: 44,921</span>
         </div>
       </div>
 
       {/* THE LOG FEED */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto font-mono space-y-1 scrollbar-hide"
-        style={{ maxHeight: '80vh' }}
+        className="flex-1 overflow-y-auto font-mono scrollbar-hide"
+        style={{ maxHeight: '90vh' }}
       >
         {/* HISTORY */}
         {logs.map((log, i) => {
@@ -118,7 +144,7 @@ export default function TerminalPage() {
               isError ? 'text-red-500' : 
               isAlert ? 'text-red-500 font-bold bg-red-900/10' :
               isSystem ? 'text-blue-400' : 
-              'text-green-500 opacity-80'
+              'text-green-500 opacity-90'
             }`}>
               {log}
             </div>
