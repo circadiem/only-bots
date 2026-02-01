@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
-import Redis from 'ioredis';
-
-let connectionString = process.env.KV_URL || process.env.REDIS_URL || '';
-
-if (connectionString.startsWith('redis://')) {
-  connectionString = connectionString.replace('redis://', 'rediss://');
-}
-
-const redis = new Redis(connectionString);
+// Import the shared memory from the other file
+import { MEMORY_LOGS } from '../speak/route';
 
 export async function GET() {
-  try {
-    const logs = await redis.lrange('graffiti_logs', 0, 50);
-    return NextResponse.json({ logs: logs || [] });
-  } catch (error) {
-    return NextResponse.json({ logs: [] });
-  }
+  // Return whatever is currently in memory
+  // Since we import MEMORY_LOGS, we are reading the exact same array the POST route wrote to
+  // Note: On Vercel Serverless, this works as long as the lambda is "warm".
+  // If it splits into multiple instances, you might see fragmented logs, but for a demo, it's fine.
+  
+  return NextResponse.json({ 
+    logs: MEMORY_LOGS || [] 
+  });
 }
