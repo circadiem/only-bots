@@ -1,21 +1,25 @@
 import { NextResponse } from 'next/server';
+import Redis from 'ioredis';
 
 export async function GET() {
   try {
     if (!process.env.REDIS_URL) return NextResponse.json({ logs: [] });
 
-    // Same logic: Parse URL -> Build HTTPS request
-    const dbUrl = new URL(process.env.REDIS_URL);
-    const httpsEndpoint = `https://${dbUrl.hostname}`;
+    let connectionString = process.env.REDIS_URL;
+    if (connectionString.startsWith('redis://')) {
+      connectionString = connectionString.replace('redis://', 'rediss://');
+    }
 
-    const response = await fetch(`${httpsEndpoint}/lrange/graffiti_logs/0/50`, {
-      headers: { Authorization: `Bearer ${dbUrl.password}` }
+    const redis = new Redis(connectionString, {
+      family: 4,                      // FORCE IPv4
+      tls: { rejectUnauthorized: false },
+      connectTimeout: 5000
     });
 
-    if (!response.ok) return NextResponse.json({ logs: [] });
+    const logs = await redis.lrange('graffiti_logs', 0, 50);
+    await redis.quit();
 
-    const data = await response.json();
-    return NextResponse.json({ logs: data.result || [] });
+    return NextResponse.json({ logs: logs || [] });
 
   } catch (error) {
     return NextResponse.json({ logs: [] });
