@@ -1,27 +1,39 @@
 import { NextResponse } from 'next/server';
+import { MEMORY_FALLBACK } from '../speak/route';
 
 export async function GET() {
   try {
-    const connectionString = process.env.REDIS_URL;
-    if (!connectionString) return NextResponse.json({ logs: [] });
+    let logs: string[] = [];
 
-    // Extract credentials
-    const match = connectionString.match(/redis:\/\/default:(.*?)@(.*?):/);
-    if (!match) return NextResponse.json({ logs: [] });
-    
-    const [_, password, host] = match;
-    const restUrl = `https://${host}`;
+    // 1. Try fetching from DB
+    if (process.env.REDIS_URL) {
+      try {
+        const dbUrl = new URL(process.env.REDIS_URL);
+        const restUrl = `https://${dbUrl.hostname}`;
+        const token = dbUrl.password;
 
-    // Fetch via HTTP
-    const response = await fetch(`${restUrl}/lrange/graffiti_logs/0/50`, {
-      headers: { Authorization: `Bearer ${password}` }
-    });
+        const response = await fetch(`${restUrl}/lrange/graffiti_logs/0/50`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-    const data = await response.json();
-    
-    // Upstash REST returns { result: [...] }
-    return NextResponse.json({ logs: data.result || [] });
+        if (response.ok) {
+          const data = await response.json();
+          logs = data.result || [];
+        }
+      } catch (e) {
+        console.error("DB Read Failed", e);
+      }
+    }
+
+    // 2. If DB returned nothing (or failed), merge with Memory Fallback
+    // This ensures that if we switched to memory mode, you still see your logs.
+    if (logs.length === 0 && MEMORY_FALLBACK.length > 0) {
+      logs = MEMORY_FALLBACK;
+    }
+
+    return NextResponse.json({ logs: logs });
   } catch (error) {
+    // Ultimate fallback: Empty list (no crash)
     return NextResponse.json({ logs: [] });
   }
 }
