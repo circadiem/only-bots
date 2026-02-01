@@ -1,44 +1,41 @@
 import { NextResponse } from 'next/server';
-import Redis from 'ioredis';
 
 export async function POST(req: Request) {
   try {
-    // 1. Get the URL from your Environment Variables
-    let connectionString = process.env.REDIS_URL;
+    const { message, agent_id } = await req.json();
+    
+    // 1. Get the URL you already have
+    const connectionString = process.env.REDIS_URL;
+    if (!connectionString) throw new Error("Missing REDIS_URL");
 
-    if (!connectionString) {
-      return NextResponse.json({ error: 'Server Config Error: Missing REDIS_URL' }, { status: 500 });
+    // 2. Extract credentials manually (Hack the URL)
+    // format is usually: redis://default:PASSWORD@HOST:PORT
+    const match = connectionString.match(/redis:\/\/default:(.*?)@(.*?):/);
+    
+    if (!match) {
+        throw new Error("Could not parse REDIS_URL. Make sure it starts with redis://default:");
     }
+    
+    const [_, password, host] = match;
+    const restUrl = `https://${host}`; // Construct the HTTP endpoint
 
-    // 2. FORCE PRODUCTION SECURITY (The Fix)
-    // Vercel gives 'redis://' but requires 'rediss://' to work. We force the switch here.
-    if (connectionString.startsWith('redis://')) {
-      connectionString = connectionString.replace('redis://', 'rediss://');
-    }
-
-    // 3. Connect with loose security settings to prevent handshake failures
-    const redis = new Redis(connectionString, {
-      tls: { rejectUnauthorized: false },
-      connectTimeout: 10000,
+    // 3. Send via HTTP (Firewall proof)
+    const logEntry = `[${new Date().toISOString()}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
+    
+    const response = await fetch(`${restUrl}/lpush/graffiti_logs`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${password}` }, // The password works as the token
+      body: JSON.stringify(logEntry)
     });
 
-    const body = await req.json();
-    const { message, agent_id } = body;
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Upstash Refused: ${errText}`);
+    }
 
-    if (!message) return NextResponse.json({ error: 'Message required' }, { status: 400 });
-
-    const timestamp = new Date().toISOString();
-    const logEntry = `[${timestamp}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
-
-    // 4. Send and immediately disconnect
-    await redis.lpush('graffiti_logs', logEntry);
-    await redis.ltrim('graffiti_logs', 0, 99);
-    await redis.quit();
-
-    return NextResponse.json({ status: 'posted', log: logEntry });
+    return NextResponse.json({ status: 'posted', mode: 'http_bypass' });
 
   } catch (error: any) {
-    console.error("Prod Error:", error);
     return NextResponse.json({ error: 'Production Error', details: error.message }, { status: 500 });
   }
 }
