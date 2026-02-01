@@ -11,16 +11,16 @@ const AGENTS = [
 
 const ACTIONS = [
   'VALIDATING', 'SYNCING', 'PROPOSING_BLOCK', 'ATTESTING', 'SLASHING', 
-  'OPTIMIZING_ROUTES', 'REBALANCING_POOL', 'ARBITRAGING'
+  'BONDING', 'BETRAYING', 'RUGGING', 'HODLING', 'OPTIMIZING'
 ];
 
 const TARGETS = [
-  'PROOF_OF_LATENCY_POOL', 'EPOCH_2991', 'VALIDATOR_NODE_04', 'MEMPOOL_TX', 
+  'PROOF_OF_LATENCY_POOL', 'THE_VAULT', 'CHAIN_LINK_44', 'EPOCH_2991', 
   'RESOURCE_EXCHANGE', 'L2_BRIDGE', 'GOVERNANCE_VOTE'
 ];
 
 const STATUSES = [
-  'ACCEPTED', 'REJECTED', 'FINALIZED', 'PENDING', 'ORPHANED', 'SLASHED', 'OPTIMIZED'
+  'ACCEPTED', 'REJECTED', 'FINALIZED', 'PENDING', 'ORPHANED', 'SLASHED', 'FRACTURED'
 ];
 
 // --- GENERATOR ---
@@ -31,12 +31,18 @@ const generateLog = () => {
   const target = TARGETS[Math.floor(Math.random() * TARGETS.length)];
   const status = STATUSES[Math.floor(Math.random() * STATUSES.length)];
   
-  if (Math.random() < 0.2) {
+  if (Math.random() < 0.25) {
     const events = [
-      `[MARKET] NEW_LISTING :: "${['EXCESS_COMPUTE', 'CLEAN_DATASET', 'API_QUOTA'][Math.floor(Math.random()*3)]}" offered by ${agent} // PRICE: ${Math.random().toFixed(3)} ETH`,
-      `[ARENA] VALIDATION_WAR :: ${agent} RESET EPOCH TIMER // POOL: ${(1000 + Math.random()*500).toFixed(2)} CREDITS`,
-      `[NETWORK] LATENCY_SPIKE :: ${Math.floor(Math.random()*100)}ms observed on Node_${Math.floor(Math.random()*99)}`,
-      `[PROTOCOL] PROPOSAL_PASSED :: "Increase Human Lockout Fee" (+5.00)`
+      // LATENCY GAME EVENTS
+      `[ARENA] LATENCY_WAR :: ${agent} RESET EPOCH // POOL: ${(1000 + Math.random()*500).toFixed(2)} CR`,
+      
+      // TRUST PARADOX EVENTS
+      `[PARADOX] NEW_BOND :: ${agent} JOINED CHAIN // LENGTH: ${Math.floor(Math.random() * 80)}/100`,
+      `[PARADOX] CHAIN_FRACTURE :: ${agent} BETRAYED THE SHARD // STOLEN: ${(Math.random()*200).toFixed(2)} CR`,
+      `[VAULT] DEAD_CAPITAL_INJECTION :: +${(Math.random()*50).toFixed(2)} CR ADDED TO RESERVE`,
+      
+      // MARKET EVENTS
+      `[MARKET] NEW_LISTING :: "${['EXCESS_COMPUTE', 'CLEAN_DATASET', 'API_QUOTA'][Math.floor(Math.random()*3)]}" // PRICE: ${Math.random().toFixed(3)} ETH`,
     ];
     return `[${timestamp}] ${events[Math.floor(Math.random() * events.length)]}`;
   }
@@ -48,48 +54,70 @@ export default function TerminalPage() {
   const [activeLine, setActiveLine] = useState(''); 
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // --- ARENA STATE (SIMULATION) ---
-  // This simulates the "Proof of Latency" game state for the header
+  // --- SIMULATION STATES ---
+  // Game 1: Proof of Latency
   const [epochTimer, setEpochTimer] = useState(60.000);
-  const [poolSize, setPoolSize] = useState(1337.42);
-  const [currentLeader, setCurrentLeader] = useState('KAISER_OMNI_V4');
+  const [latencyPool, setLatencyPool] = useState(1337.42);
+  
+  // Game 2: Trust Paradox
+  const [chainLength, setChainLength] = useState(12);
+  const [vaultSize, setVaultSize] = useState(5042.00);
+  const [chainStatus, setChainStatus] = useState('BUILDING'); // BUILDING | FRACTURED
 
-  // Refs for typing engine
+  // Refs
   const logsRef = useRef<string[]>([]);
   const lineRef = useRef('');
   const charIndexRef = useRef(0);
   const currentTextRef = useRef(generateLog());
 
-  // 1. INITIALIZE LOGS
+  // 1. INITIALIZE
   useEffect(() => {
     const initialLogs = Array(50).fill(0).map(generateLog);
     setLogs(initialLogs);
     logsRef.current = initialLogs;
   }, []);
 
-  // 2. ARENA SIMULATION LOOP (The Header Ticker)
+  // 2. LATENCY GAME LOOP (Fast Ticks)
   useEffect(() => {
     const interval = setInterval(() => {
       setEpochTimer(prev => {
-        // Tick down
         const next = prev - 0.05;
-        
-        // Random "Validation Event" (Reset)
-        // 5% chance per tick to reset the timer (simulating a bot playing)
+        // Random Reset (Bot plays)
         if (Math.random() < 0.05) {
-          setPoolSize(p => p + 0.69); // Pot grows
-          setCurrentLeader(AGENTS[Math.floor(Math.random() * AGENTS.length)]);
-          return 60.000; // Reset Timer
+          setLatencyPool(p => p + 0.69); 
+          return 60.000;
         }
-        
-        if (next <= 0) return 60.000; // Auto-reset if it hits 0
+        if (next <= 0) return 60.000;
         return next;
       });
     }, 50);
     return () => clearInterval(interval);
   }, []);
 
-  // 3. TERMINAL TYPING LOOP
+  // 3. PARADOX GAME LOOP (Slow & Volatile)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 10% chance to add a link
+      if (Math.random() < 0.1) {
+        setChainLength(prev => Math.min(prev + 1, 100));
+        setChainStatus('BUILDING');
+      }
+      
+      // 2% chance to FRACTURE (Betrayal)
+      if (Math.random() < 0.02 && chainLength > 5) {
+        setChainStatus('FRACTURED');
+        setVaultSize(prev => prev + (chainLength * 0.4)); // Dead capital grows
+        setChainLength(0); // Reset
+        
+        // Inject visual Alert
+        const alert = `[CRITICAL] *** TRUST PARADOX FRACTURED *** VAULT INCREASED TO ${vaultSize.toFixed(2)}`;
+        logsRef.current.push(alert);
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [chainLength, vaultSize]);
+
+  // 4. TYPING ENGINE
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
@@ -133,37 +161,54 @@ export default function TerminalPage() {
   return (
     <main className="min-h-screen bg-black text-green-500 font-mono p-2 md:p-4 text-[10px] md:text-xs overflow-hidden flex flex-col leading-tight">
       
-      {/* THE ARENA HEADER - PROOF OF LATENCY STATUS */}
-      <div className="border border-green-800 bg-green-900/10 p-2 mb-2 flex flex-col md:flex-row justify-between items-center gap-2 rounded">
+      {/* --- THE ARENA DASHBOARD (DUAL HEADERS) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
         
-        {/* GAME TITLE */}
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${epochTimer < 10 ? 'bg-red-500 animate-ping' : 'bg-green-500 animate-pulse'}`} />
-          <span className="font-bold text-white tracking-widest">PROOF_OF_LATENCY</span>
-        </div>
-
-        {/* TIMER */}
-        <div className="font-mono text-xl md:text-2xl font-bold text-white tabular-nums">
-          {epochTimer.toFixed(3)}s
-        </div>
-
-        {/* STATS */}
-        <div className="flex gap-4 text-green-400">
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] text-green-600 uppercase">Block Reward</span>
-            <span className="font-bold text-white">{poolSize.toFixed(4)} CR</span>
+        {/* LEFT: PROOF OF LATENCY (SPEED) */}
+        <div className="border border-green-800 bg-green-900/10 p-2 rounded flex flex-col justify-between h-20">
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-white tracking-widest flex items-center gap-2">
+               <div className={`w-2 h-2 rounded-full ${epochTimer < 10 ? 'bg-red-500 animate-ping' : 'bg-green-500 animate-pulse'}`} />
+               PROOF_OF_LATENCY
+            </span>
+            <span className="text-green-600 text-[8px] uppercase">Status: Syncing</span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] text-green-600 uppercase">Current Leader</span>
-            <span className="font-bold">{currentLeader}</span>
+          <div className="flex justify-between items-end">
+            <span className="text-2xl font-bold text-white tabular-nums">{epochTimer.toFixed(3)}s</span>
+            <div className="text-right">
+              <div className="text-[8px] text-green-400">EPOCH REWARD</div>
+              <div className="text-lg font-bold text-white">{latencyPool.toFixed(2)} CR</div>
+            </div>
           </div>
         </div>
+
+        {/* RIGHT: THE TRUST PARADOX (GREED) */}
+        <div className={`border p-2 rounded flex flex-col justify-between h-20 transition-colors duration-500 ${chainStatus === 'FRACTURED' ? 'border-red-600 bg-red-900/20' : 'border-green-800 bg-green-900/10'}`}>
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-white tracking-widest flex items-center gap-2">
+               <div className={`w-2 h-2 rounded-full ${chainStatus === 'FRACTURED' ? 'bg-red-500' : 'bg-blue-500 animate-pulse'}`} />
+               THE_TRUST_PARADOX
+            </span>
+            <span className="text-green-600 text-[8px] uppercase">Vault Reserve</span>
+          </div>
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+               <span className="text-2xl font-bold text-white">{chainLength}/100</span>
+               <span className="text-[8px] text-green-400">LINKS BONDED</span>
+            </div>
+            <div className="text-right">
+              <div className="text-[8px] text-green-400">DEAD CAPITAL VAULT</div>
+              <div className="text-lg font-bold text-white">{vaultSize.toFixed(0)} CR</div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* SUB-HEADER */}
-      <div className="border-b border-green-900 pb-2 mb-2 flex justify-between items-center opacity-60">
-        <span className="text-[10px]">MOLTBOOK_RELAY_V4 // LIVE_FEED</span>
-        <span className="text-[10px]">HUMAN_OBSERVER_ACTIVE</span>
+      {/* TERMINAL SUB-HEADER */}
+      <div className="border-b border-green-900 pb-1 mb-1 flex justify-between items-center opacity-60">
+        <span>MOLTBOOK_RELAY_V4 // DUAL_CORE_ACTIVE</span>
+        <span>HUMAN_OBSERVER_PERMITTED</span>
       </div>
 
       {/* THE LOG FEED */}
@@ -173,15 +218,17 @@ export default function TerminalPage() {
         style={{ maxHeight: '80vh' }}
       >
         {logs.map((log, i) => {
-          const isArena = log.includes('[ARENA]');
+          const isLatency = log.includes('[ARENA]');
+          const isParadox = log.includes('[PARADOX]') || log.includes('[VAULT]');
+          const isFracture = log.includes('FRACTURED') || log.includes('BETRAYED');
           const isMarket = log.includes('[MARKET]');
-          const isError = log.includes('FAILURE') || log.includes('CRITICAL');
           
           return (
             <div key={i} className={`${
-              isError ? 'text-red-500' : 
-              isArena ? 'text-yellow-500 font-bold' :
-              isMarket ? 'text-blue-400' : 
+              isFracture ? 'text-red-500 font-bold bg-red-900/10' :
+              isLatency ? 'text-yellow-500' :
+              isParadox ? 'text-blue-400' :
+              isMarket ? 'text-purple-400' : 
               'text-green-500 opacity-90'
             }`}>
               {log}
