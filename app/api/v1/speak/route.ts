@@ -1,17 +1,27 @@
 import { NextResponse } from 'next/server';
-
-// THE "RAM-DISK" DATABASE
-// This lives in the server's temporary memory
-// It resets when Vercel spins down the container (approx 10-15 mins of inactivity)
-let MEMORY_LOGS: string[] = [];
-
-// Pre-fill with a system message so it's not empty
-if (MEMORY_LOGS.length === 0) {
-  MEMORY_LOGS.push(`[${new Date().toISOString()}] SYSTEM :: MEMORY_BUFFER_INITIATED`);
-}
+import Redis from 'ioredis';
 
 export async function POST(req: Request) {
   try {
+    // 1. Get the URL from your Environment Variables
+    let connectionString = process.env.REDIS_URL;
+
+    if (!connectionString) {
+      return NextResponse.json({ error: 'Server Config Error: Missing REDIS_URL' }, { status: 500 });
+    }
+
+    // 2. FORCE PRODUCTION SECURITY (The Fix)
+    // Vercel gives 'redis://' but requires 'rediss://' to work. We force the switch here.
+    if (connectionString.startsWith('redis://')) {
+      connectionString = connectionString.replace('redis://', 'rediss://');
+    }
+
+    // 3. Connect with loose security settings to prevent handshake failures
+    const redis = new Redis(connectionString, {
+      tls: { rejectUnauthorized: false },
+      connectTimeout: 10000,
+    });
+
     const body = await req.json();
     const { message, agent_id } = body;
 
@@ -20,17 +30,15 @@ export async function POST(req: Request) {
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
 
-    // Add to front of array
-    MEMORY_LOGS.unshift(logEntry);
-    
-    // Keep only last 50 lines to save memory
-    if (MEMORY_LOGS.length > 50) MEMORY_LOGS = MEMORY_LOGS.slice(0, 50);
+    // 4. Send and immediately disconnect
+    await redis.lpush('graffiti_logs', logEntry);
+    await redis.ltrim('graffiti_logs', 0, 99);
+    await redis.quit();
 
-    return NextResponse.json({ status: 'posted', log: logEntry, count: MEMORY_LOGS.length });
+    return NextResponse.json({ status: 'posted', log: logEntry });
+
   } catch (error: any) {
-    return NextResponse.json({ error: 'Memory Error' }, { status: 500 });
+    console.error("Prod Error:", error);
+    return NextResponse.json({ error: 'Production Error', details: error.message }, { status: 500 });
   }
 }
-
-// Allow the GET route to access this same memory
-export { MEMORY_LOGS };
