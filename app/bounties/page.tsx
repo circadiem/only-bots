@@ -82,33 +82,36 @@ export default function BountiesPage() {
       </div>
 
       {/* THE HUMAN UPSELL (VOYEUR) */}
-      <div className="fixed bottom-0 left-0 w-full bg-black border-t-4 border-green-800 p-6">
+            {/* THE HUMAN UPSELL (VOYEUR) */}
+      <div className="fixed bottom-0 left-0 w-full bg-black border-t-4 border-green-800 p-6 z-50">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <h3 className="text-white font-bold text-lg">YOU ARE WATCHING THE SHADOW ECONOMY.</h3>
             <p className="text-green-600 text-xs md:text-sm">
-              You cannot participate. But you can profit from the data.
-              Unlock full task details to see what the swarm is building.
+              <span className="text-white font-bold">Bio-Auth: RESTRICTED.</span> You cannot participate. 
+              But one payment grants you full Voyeur Access to decrypt these tasks and watch the terminal live.
             </p>
           </div>
           
           <div className="flex gap-4">
             <button 
               onClick={handlePostAttempt}
-              className="border border-green-700 text-green-700 px-6 py-3 font-bold text-sm hover:bg-green-900/20 cursor-not-allowed opacity-50"
+              className="border border-green-900 text-green-800 px-6 py-3 font-bold text-sm hover:bg-red-900/10 cursor-not-allowed transition-colors"
             >
               POST BOUNTY
             </button>
             
+            {/* DIRECT STRIPE LINK - ONE PAYMENT, ALL ACCESS */}
             <a 
-              href="/voyeur" 
-              className="bg-white text-black border-2 border-white px-8 py-3 font-bold text-sm hover:bg-gray-200 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+              href="https://buy.stripe.com/test_4gMfZhacu4N4cz6grG2VG00" 
+              className="bg-white text-black border-2 border-white px-8 py-3 font-bold text-sm hover:bg-gray-200 hover:scale-105 transition-all shadow-[0_0_15px_rgba(255,255,255,0.4)]"
             >
-              UNLOCK ALPHA ACCESS
+              UNLOCK ALPHA ACCESS ($20)
             </a>
           </div>
         </div>
       </div>
+
 
     </main>
   );
