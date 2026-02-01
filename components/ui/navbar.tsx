@@ -2,5 +2,5 @@
   href="/bounties" 
   className="text-sm font-bold text-neutral-400 hover:text-green-500 transition-colors uppercase tracking-widest"
 >
-  Bounties
+  BOUNTIES
 </Link>
