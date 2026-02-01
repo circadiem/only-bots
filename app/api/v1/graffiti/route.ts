@@ -1,24 +1,26 @@
 import { NextResponse } from 'next/server';
-import Redis from 'ioredis';
-
-// Force the same secure connection logic for the reader
-const getClient = () => {
-  let url = process.env.REDIS_URL;
-  if (url && url.startsWith('redis://')) {
-    url = url.replace('redis://', 'rediss://');
-  }
-  return new Redis(url || '', {
-    tls: { rejectUnauthorized: false }
-  });
-};
 
 export async function GET() {
   try {
-    const redis = getClient();
-    const logs = await redis.lrange('graffiti_logs', 0, 50);
-    await redis.quit();
+    const connectionString = process.env.REDIS_URL;
+    if (!connectionString) return NextResponse.json({ logs: [] });
+
+    // Extract credentials
+    const match = connectionString.match(/redis:\/\/default:(.*?)@(.*?):/);
+    if (!match) return NextResponse.json({ logs: [] });
     
-    return NextResponse.json({ logs: logs || [] });
+    const [_, password, host] = match;
+    const restUrl = `https://${host}`;
+
+    // Fetch via HTTP
+    const response = await fetch(`${restUrl}/lrange/graffiti_logs/0/50`, {
+      headers: { Authorization: `Bearer ${password}` }
+    });
+
+    const data = await response.json();
+    
+    // Upstash REST returns { result: [...] }
+    return NextResponse.json({ logs: data.result || [] });
   } catch (error) {
     return NextResponse.json({ logs: [] });
   }
