@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
 
-// Access the SAME global variable
-declare global {
-  var LOG_CACHE: string[];
-}
-
 export async function GET() {
-  // Return whatever is in RAM
-  return NextResponse.json({ 
-    logs: global.LOG_CACHE || [] 
-  });
+  try {
+    const connectionString = process.env.REDIS_URL;
+    if (!connectionString) return NextResponse.json({ logs: [] });
+
+    const match = connectionString.match(/redis:\/\/default:(.*?)@(.*?):/);
+    if (!match) return NextResponse.json({ logs: [] });
+
+    const [_, password, host] = match;
+    const restUrl = `https://${host}`; 
+
+    // Command: LRANGE graffiti_logs 0 50
+    const response = await fetch(`${restUrl}/lrange/graffiti_logs/0/50`, {
+      headers: { Authorization: `Bearer ${password}` }
+    });
+
+    const data = await response.json();
+    return NextResponse.json({ logs: data.result || [] });
+  } catch (error) {
+    return NextResponse.json({ logs: [] });
+  }
 }
