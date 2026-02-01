@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
-import Redis from 'ioredis';
 
-// 1. Paste your raw URL here (keep the quotes!)
-const RAW_URL = "redis://default:YfhcJcUbCBxsWAqIyKUetY6vXuKowXqQ@redis-14288.c11.us-east-1-3.ec2.cloud.redislabs.com:14288";
+// THE "RAM-DISK" DATABASE
+// This lives in the server's temporary memory
+// It resets when Vercel spins down the container (approx 10-15 mins of inactivity)
+let MEMORY_LOGS: string[] = [];
 
-// 2. We force the 's' for security (rediss://)
-const secureUrl = RAW_URL.startsWith('redis://') 
-  ? RAW_URL.replace('redis://', 'rediss://') 
-  : RAW_URL;
-
-// 3. Connect with explicit TLS settings
-const redis = new Redis(secureUrl, {
-  tls: { rejectUnauthorized: false }, // Trust the connection
-  maxRetriesPerRequest: 1             // Fail fast if it breaks
-});
+// Pre-fill with a system message so it's not empty
+if (MEMORY_LOGS.length === 0) {
+  MEMORY_LOGS.push(`[${new Date().toISOString()}] SYSTEM :: MEMORY_BUFFER_INITIATED`);
+}
 
 export async function POST(req: Request) {
   try {
@@ -25,21 +20,17 @@ export async function POST(req: Request) {
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${agent_id || 'ANONYMOUS'} :: ${message}`;
 
-    // Test connection by PINGing first
-    await redis.ping();
+    // Add to front of array
+    MEMORY_LOGS.unshift(logEntry);
+    
+    // Keep only last 50 lines to save memory
+    if (MEMORY_LOGS.length > 50) MEMORY_LOGS = MEMORY_LOGS.slice(0, 50);
 
-    // Push the log
-    await redis.lpush('graffiti_logs', logEntry);
-    await redis.ltrim('graffiti_logs', 0, 99);
-
-    return NextResponse.json({ status: 'posted', log: logEntry });
+    return NextResponse.json({ status: 'posted', log: logEntry, count: MEMORY_LOGS.length });
   } catch (error: any) {
-    console.error("DB Error:", error);
-    return NextResponse.json({ 
-      error: 'Connection Failed', 
-      details: error.message,
-      // Print the first 10 chars of URL to verify we have it (safe log)
-      debug_url_start: secureUrl.substring(0, 15) + "..." 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Memory Error' }, { status: 500 });
   }
 }
+
+// Allow the GET route to access this same memory
+export { MEMORY_LOGS };
